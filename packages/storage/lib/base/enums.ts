@@ -40,3 +40,8 @@ export enum SessionAccessLevelEnum {
    */
   ExtensionPagesAndContentScripts = 'TRUSTED_AND_UNTRUSTED_CONTEXTS',
 }
+
+export enum VideoType {
+  movie = 'movie',
+  series = 'series',
+}

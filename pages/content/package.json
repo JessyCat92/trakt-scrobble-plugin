@@ -23,7 +23,8 @@
   "dependencies": {
     "@extension/shared": "workspace:*",
     "@extension/storage": "workspace:*",
-    "@extension/env": "workspace:*"
+    "@extension/env": "workspace:*",
+    "trakt.tv": "^8.2.0"
   },
   "devDependencies": {
     "@extension/hmr": "workspace:*",

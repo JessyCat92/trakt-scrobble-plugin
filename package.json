@@ -90,7 +90,7 @@
       "eslint --fix"
     ]
   },
-  "packageManager": "pnpm@10.11.0",
+  "packageManager": "pnpm@10.11.1",
   "engines": {
     "node": ">=22.15.1"
   }

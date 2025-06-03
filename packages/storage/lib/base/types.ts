@@ -52,3 +52,8 @@ export interface ThemeStateType {
 export type ThemeStorageType = BaseStorageType<ThemeStateType> & {
   toggle: () => Promise<void>;
 };
+
+export interface TraktDataType {
+  accessToken: null | string;
+  refreshToken: null | string;
+}

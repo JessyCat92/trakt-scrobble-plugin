@@ -1,5 +1,5 @@
-import { sampleFunction } from '@src/sample-function';
+import { processPage } from '@src/parser/process';
 
 console.log('[CEB] All content script loaded');
 
-void sampleFunction();
+processPage().then(console.log).catch(console.error);
