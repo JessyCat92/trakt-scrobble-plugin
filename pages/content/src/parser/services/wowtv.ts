@@ -27,6 +27,7 @@ class Wowtv implements IService {
       this.episodeNr = parseInt(seriesMatch.groups!.episode);
       this.seasonNr = parseInt(seriesMatch.groups!.season);
       this.subTitle = seriesMatch.groups!.subtitle;
+      // console.log(this.episodeNr, this.seasonNr, this.subTitle);
     } else {
       // some format differs? Should not happen
       console.log(metaData);
@@ -60,6 +61,17 @@ class Wowtv implements IService {
   async getVideoUrl(): Promise<string | undefined> {
     // console.log(document.querySelector('video'));
     // return document.querySelector('video')?.src;
+    return window.location.href;
+  }
+
+  async getUniqueIdentifier(): Promise<string> {
+    const url = window.location.href;
+    const regex = /https:\/\/www\.wowtv\.de\/watch\/playback\/vod\/\w*\/(?<id>\w*)/;
+    const match = url.match(regex);
+    if (match) {
+      return match.groups!.id;
+    }
+
     return window.location.href;
   }
 

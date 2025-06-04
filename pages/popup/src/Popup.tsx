@@ -1,68 +1,83 @@
 import '@src/Popup.css';
-import { t } from '@extension/i18n';
-import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage, itemQueueStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner, ToggleButton } from '@extension/ui';
+import { TraktApi, TraktGetDeviceCodeResponse, useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
+import { exampleThemeStorage, itemQueueStorage, traktDataStorage } from '@extension/storage';
+import { cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
+import { useEffect, useState } from 'react';
 
-// const notificationOptions = {
-//   type: 'basic',
-//   iconUrl: chrome.runtime.getURL('icon-34.png'),
-//   title: 'Injecting content script error',
-//   message: 'You cannot inject script here!',
-// } as const;
+async function loadAccessToken(setIsCodeExpired: Function) {
+  const traktApi = new TraktApi(process.env['CEB_TRAKT_CLIENT_ID']!, process.env['CEB_TRAKT_CLIENT_SECRET']!);
+  // @todo: check if access token is expired or refresh token is expired
+  const deviceCodes = await traktApi.getDeviceCode();
+
+  let interval = setInterval(async () => {
+    if ((await traktApi.checkForAccess()) === false) {
+      clearInterval(interval);
+      setIsCodeExpired(true);
+    }
+  }, 1000);
+
+  return deviceCodes as TraktGetDeviceCodeResponse;
+}
 
 const Popup = () => {
   const { isLight } = useStorage(exampleThemeStorage);
   const { queueItems } = useStorage(itemQueueStorage);
+  const { accessToken, refreshToken } = useStorage(traktDataStorage);
+  const [codeData, setCodeData] = useState<TraktGetDeviceCodeResponse | null>(null);
+  const [isCodeExpired, setIsCodeExpired] = useState(false);
 
-  console.log('queueItems', queueItems);
-
-  // const injectContentScript = async () => {
-  //   const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
-  //
-  //   if (tab.url!.startsWith('about:') || tab.url!.startsWith('chrome:')) {
-  //     chrome.notifications.create('inject-error', notificationOptions);
-  //   }
-  //
-  //   await chrome.scripting
-  //     .executeScript({
-  //       target: { tabId: tab.id! },
-  //       files: ['/content-runtime/example.iife.js', '/content-runtime/all.iife.js'],
-  //     })
-  //     .catch(err => {
-  //       // Handling errors related to other paths
-  //       if (err.message.includes('Cannot access a chrome:// URL')) {
-  //         chrome.notifications.create('inject-error', notificationOptions);
-  //       }
-  //     });
-  // };
+  console.log('frontend', process.env['CEB_TRAKT_CLIENT_ID']!, process.env['CEB_TRAKT_CLIENT_SECRET']!);
+  useEffect(() => {
+    if (accessToken) return;
+    // needs test if it works?
+    setIsCodeExpired(false);
+    loadAccessToken(setIsCodeExpired).then(data => setCodeData(data));
+  }, [isCodeExpired]);
 
   return (
     <div className={cn('App', isLight ? 'bg-slate-50' : 'bg-gray-800')}>
       <header className={cn('App-header', isLight ? 'text-gray-900' : 'text-gray-100')}>
+        {!accessToken || !refreshToken ? (
+          <div style={{ marginBottom: '1rem' }}>
+            {codeData ? (
+              <>
+                Please visit{' '}
+                <a
+                  style={{
+                    color: 'lightblue',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                  }}
+                  href={codeData.verification_url + '/' + codeData.user_code}
+                  target="_blank"
+                  rel="noreferrer">
+                  {codeData.verification_url}
+                </a>{' '}
+                and verify the following code: <b>{codeData.user_code}</b>
+              </>
+            ) : (
+              <LoadingSpinner />
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
+
         <div style={{ marginBottom: '1rem', border: '1px solid', padding: '1rem' }}>
           <h4>Queued Items:</h4>
           <ul style={{ listStyle: 'inside' }}>
-            {/*  show list of queue items */}
             {queueItems.map(item => (
               <li key={item.videoUrl}>
-                {item.title}
+                <a href={item.videoUrl} target="_blank" rel="noreferrer">
+                  {item.title}
+                </a>
                 {item.subTitle ? <> - {item.subTitle} </> : <></>} -{' '}
-                {item.progress > 0 ? Math.round(item.progress * 100) : 0} %
+                {item.progress > 0 ? Math.round(item.progress * 100) : 0} % (TMDB: {item.tmdbId} - UUID: {item.unqiueId}
+                )
               </li>
             ))}
           </ul>
-          {window.location.href}
         </div>
-        {/*<button*/}
-        {/*  className={cn(*/}
-        {/*    'mt-4 rounded px-4 py-1 font-bold shadow hover:scale-105',*/}
-        {/*    isLight ? 'bg-blue-200 text-black' : 'bg-gray-700 text-white',*/}
-        {/*  )}*/}
-        {/*  onClick={injectContentScript}>*/}
-        {/*  {t('injectButton')}*/}
-        {/*</button>*/}
-        <ToggleButton>{t('toggleTheme')}</ToggleButton>
       </header>
     </div>
   );

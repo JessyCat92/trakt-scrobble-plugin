@@ -3,8 +3,8 @@ import { VideoType } from '@extension/storage';
 import { EpisodeTranslationsResponse, MovieDb } from 'moviedb-promise';
 import type { ItemQueueItem } from '@extension/storage';
 
-const getSeriesEpisodeId = async (item: ItemQueueItem): Promise<number | null> => {
-  // console.log(TMDB_API_KEY);
+const getSeriesEpisodeId = async (item: ItemQueueItem): Promise<number | null | false> => {
+  console.log(TMDB_API_KEY);
   const tmdb = new MovieDb(TMDB_API_KEY!);
 
   if (item.subTitle && (item.episode === null || item.season === null)) {
@@ -27,7 +27,7 @@ const getSeriesEpisodeId = async (item: ItemQueueItem): Promise<number | null> =
 
   if (seriesId === -1) {
     // series could not be found
-    return null;
+    return false;
   }
 
   const episodeData = await tmdb.episodeInfo({
@@ -45,13 +45,13 @@ const getSeriesEpisodeId = async (item: ItemQueueItem): Promise<number | null> =
     })
   ) {
     console.error('Translation not found - incorrect series or episode');
-    return null;
+    return false;
   }
 
   return episodeData.id!;
 };
 
-export const getTmdbId = async (item: ItemQueueItem): Promise<number | null> => {
+export const getTmdbId = async (item: ItemQueueItem): Promise<number | false | null> => {
   const tmdb = new MovieDb(TMDB_API_KEY!);
   if (!item.videoType) {
     if (item.season === null && item.episode === null && item.subTitle === null) {

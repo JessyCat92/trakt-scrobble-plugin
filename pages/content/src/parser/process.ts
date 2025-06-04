@@ -44,7 +44,7 @@ export const processPage = async () => {
     const video = videoComponent as HTMLMediaElement;
     video.addEventListener('timeupdate', async () => {
       // video time should be longer then 3 seconds - otherwise it is still loading
-      if (video.currentTime <= 3) return;
+      if (video.currentTime <= 15) return;
       await processItem({
         videoUrl: (await service.getVideoUrl())!,
         videoDuration: video.duration,
@@ -54,6 +54,7 @@ export const processPage = async () => {
         subtitle: service.getCurrentSubTitle(),
         season: service.getCurrentSeasonNr(),
         episode: service.getCurrentEpisodeNr(),
+        uniqueId: await service.getUniqueIdentifier(),
         service,
       });
     });
@@ -75,6 +76,7 @@ export interface RawItemData {
   subtitle: string | null;
   season: number | null;
   episode: number | null;
+  uniqueId: string;
   service: IService;
 }
 
@@ -82,8 +84,8 @@ export const processItem = async (rawItem: RawItemData) => {
   // @todo: get if not exist tmdbId and counter check server tmdb Id  -> maybe in backgrond process together with calculating Watch Time
   // console.log(rawItem);
 
-  const item = await itemQueueStorage.getItembyUrl(rawItem.videoUrl);
-  const isSynced = await itemQueueStorage.isItemSyncedByUrl(rawItem.videoUrl);
+  const item = await itemQueueStorage.getItembyUniqueId(rawItem.uniqueId);
+  const isSynced = await itemQueueStorage.isItemSyncedByUniqueId(rawItem.uniqueId);
   if (isSynced) return;
 
   if (!item) {
@@ -91,6 +93,7 @@ export const processItem = async (rawItem: RawItemData) => {
     // console.log('add new Item', rawItem);
     await itemQueueStorage.addItem({
       videoUrl: rawItem.videoUrl,
+      unqiueId: rawItem.uniqueId,
       title: rawItem.title!,
       subTitle: rawItem.subtitle,
       season: rawItem.season,
@@ -104,6 +107,11 @@ export const processItem = async (rawItem: RawItemData) => {
       videoType: rawItem.videoType,
     });
   } else {
+    if (!item.subTitle) item.subTitle = rawItem.subtitle;
+    if (!item.season) item.season = rawItem.season;
+    if (!item.episode) item.episode = rawItem.episode;
+    if (item.videoType !== rawItem.videoType) item.videoType = rawItem.videoType;
+
     item.positions.push(rawItem.videoCurrentTime);
     await itemQueueStorage.updateItem(item);
   }

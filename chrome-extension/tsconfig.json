@@ -1,7 +1,6 @@
 {
   "extends": "@extension/tsconfig/app",
   "compilerOptions": {
-    "inlineSourceMap": true,
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"]

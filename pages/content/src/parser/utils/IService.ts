@@ -37,4 +37,6 @@ export interface IService {
    * getVideoUrl
    */
   getVideoUrl(): Promise<string | undefined>;
+
+  getUniqueIdentifier(): Promise<string>;
 }

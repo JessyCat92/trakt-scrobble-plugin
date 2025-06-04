@@ -56,4 +56,5 @@ export type ThemeStorageType = BaseStorageType<ThemeStateType> & {
 export interface TraktDataType {
   accessToken: null | string;
   refreshToken: null | string;
+  expires_at: null | number;
 }

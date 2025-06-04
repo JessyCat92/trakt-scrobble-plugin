@@ -21,13 +21,13 @@ export const itemQueueStorage: QueueStorageType = {
       return currentState;
     });
   },
-  getItembyUrl: async (url: string) => {
+  getItembyUniqueId: async (uniqueId: string) => {
     const data = await storage.get();
-    return data.queueItems.find(item => item.videoUrl === url);
+    return data.queueItems.find(item => item.unqiueId === uniqueId);
   },
   updateItem: async (item: ItemQueueItem) => {
     await storage.set(currentState => {
-      const index = currentState.queueItems.findIndex(queueItem => queueItem.videoUrl === item.videoUrl);
+      const index = currentState.queueItems.findIndex(queueItem => queueItem.unqiueId === item.unqiueId);
       if (index !== -1) {
         currentState.queueItems[index] = item;
       }
@@ -37,12 +37,33 @@ export const itemQueueStorage: QueueStorageType = {
   resetQueue: async () => {
     await storage.set(currentState => {
       currentState.queueItems = [];
+      currentState.syncedItems = [];
       return currentState;
     });
   },
-  isItemSyncedByUrl: async (url: string) => {
+  clearSyncedItems: async () => {
+    await storage.set(currentState => {
+      currentState.syncedItems = [];
+      return currentState;
+    });
+  },
+  isItemSyncedByUniqueId: async (uniqueId: string) => {
     const data = await storage.get();
-    return !!data.syncedItems.find(item => item.videoUrl === url);
+    return !!data.syncedItems.find(item => item.unqiueId === uniqueId);
+  },
+  setItemSyncedByUniqueId: async (uniqueId: string) => {
+    // remove from queueItems and add to syncedItems
+    const data = await storage.get();
+    const index = data.queueItems.findIndex(queueItem => queueItem.unqiueId === uniqueId);
+    if (index !== -1) {
+      data.syncedItems.push(data.queueItems[index]);
+      data.queueItems.splice(index, 1);
+    }
+    await storage.set(currentState => {
+      currentState.queueItems = data.queueItems;
+      currentState.syncedItems = data.syncedItems;
+      return currentState;
+    });
   },
 };
 
@@ -52,12 +73,13 @@ export interface ItemQueueItem {
   subTitle: string | null;
   season: number | null;
   episode: number | null;
-  tmdbId: number | null; // null as long as item is not pre-processed
+  tmdbId: number | null | false; // null as long as item is not pre-processed
   serviceTmdbId: number;
   videoDuration: number;
   positions: number[]; // -> To Calculate Progress /// -1 = not calculated yet
   progress: number;
   isScrobbled: boolean;
+  unqiueId: string;
   videoType: VideoType;
 }
 
@@ -68,8 +90,10 @@ export interface ItemQueueStorage {
 
 export type QueueStorageType = BaseStorageType<ItemQueueStorage> & {
   addItem: (item: ItemQueueItem) => Promise<void>;
-  getItembyUrl: (url: string) => Promise<ItemQueueItem | undefined>;
+  getItembyUniqueId: (uniqueId: string) => Promise<ItemQueueItem | undefined>;
   updateItem: (item: ItemQueueItem) => Promise<void>;
   resetQueue: () => Promise<void>;
-  isItemSyncedByUrl: (url: string) => Promise<boolean>;
+  isItemSyncedByUniqueId: (uniqueId: string) => Promise<boolean>;
+  setItemSyncedByUniqueId: (uniqueId: string) => Promise<void>;
+  clearSyncedItems: () => Promise<void>;
 };
