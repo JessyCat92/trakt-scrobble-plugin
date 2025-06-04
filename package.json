@@ -1,7 +1,7 @@
 {
   "name": "chrome-extension-boilerplate-react-vite",
   "version": "0.5.0",
-  "description": "chrome extension boilerplate",
+  "description": "Jessys Trakt Sync",
   "license": "MIT",
   "private": true,
   "sideEffects": false,

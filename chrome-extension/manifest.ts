@@ -24,7 +24,7 @@ const manifest = {
   name: '__MSG_extensionName__',
   browser_specific_settings: {
     gecko: {
-      id: 'example@example.com',
+      id: 'jessica.weber.92@outlook.de',
       strict_min_version: '109.0',
     },
   },

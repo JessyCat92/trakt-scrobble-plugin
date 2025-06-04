@@ -33,9 +33,13 @@ setInterval(async () => {
     await itemQueueStorage.updateItem(item);
     // Field positions is storing position every some milliseconds if time is close together it is because of playing not skipping - I want to have a sum of all time between positions where it because of playing
 
-    console.log(item.progress);
-    if (item.progress > 0.9 && (await traktApi.isAuthenticated())) {
-      await traktApi.syncItemToHistory(item);
+    if (item.progress > 0.9) {
+      if (await traktApi.isAuthenticated()) {
+        await traktApi.syncItemToHistory(item);
+      } else {
+        chrome.action.setBadgeBackgroundColor({ color: [255, 0, 0, 255] });
+        chrome.action.setBadgeText({ text: 'Auth' });
+      }
     }
   }
 }, syncIntervalInSeconds * 1000);

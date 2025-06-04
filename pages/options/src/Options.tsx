@@ -29,9 +29,11 @@ async function loadAccessToken(setIsCodeExpired: Function) {
 const Options = () => {
   const { isLight } = useStorage(exampleThemeStorage);
   const { queueItems, syncedItems } = useStorage(itemQueueStorage);
-  const { accessToken, refreshToken } = useStorage(traktDataStorage);
+  const { accessToken, refreshToken, expires_at } = useStorage(traktDataStorage);
   const [codeData, setCodeData] = useState<TraktGetDeviceCodeResponse | null>(null);
   const [isCodeExpired, setIsCodeExpired] = useState(false);
+
+  const expireDate = expires_at ? new Date(expires_at) : '';
 
   console.log('frontend', process.env['CEB_TRAKT_CLIENT_ID']!, process.env['CEB_TRAKT_CLIENT_SECRET']!);
   useEffect(() => {
@@ -76,6 +78,7 @@ const Options = () => {
         <ul style={{ listStyle: 'inside' }}>
           <li>Access Token: {accessToken}</li>
           <li>Refresh Token: {refreshToken}</li>
+          <li>Access Token Expires At: {expireDate.toString()}</li>
           <li>
             <Button onClick={traktDataStorage.resetTokens}>Reset Tokens</Button>
           </li>

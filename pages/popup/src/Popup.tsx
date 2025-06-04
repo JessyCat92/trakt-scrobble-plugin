@@ -4,6 +4,13 @@ import { exampleThemeStorage, itemQueueStorage, traktDataStorage } from '@extens
 import { cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import { useEffect, useState } from 'react';
 
+const notificationOptions = {
+  type: 'basic',
+  iconUrl: chrome.runtime.getURL('icon-34.png'),
+  title: 'Access Token Expired or Missing',
+  message: 'Access Token has Expired or is Missing, Please reauthenticate',
+} as const;
+
 async function loadAccessToken(setIsCodeExpired: Function) {
   const traktApi = new TraktApi(process.env['CEB_TRAKT_CLIENT_ID']!, process.env['CEB_TRAKT_CLIENT_SECRET']!);
   // @todo: check if access token is expired or refresh token is expired
@@ -22,13 +29,20 @@ async function loadAccessToken(setIsCodeExpired: Function) {
 const Popup = () => {
   const { isLight } = useStorage(exampleThemeStorage);
   const { queueItems } = useStorage(itemQueueStorage);
-  const { accessToken, refreshToken } = useStorage(traktDataStorage);
+  const { accessToken, refreshToken, expires_at } = useStorage(traktDataStorage);
   const [codeData, setCodeData] = useState<TraktGetDeviceCodeResponse | null>(null);
   const [isCodeExpired, setIsCodeExpired] = useState(false);
 
   console.log('frontend', process.env['CEB_TRAKT_CLIENT_ID']!, process.env['CEB_TRAKT_CLIENT_SECRET']!);
   useEffect(() => {
-    if (accessToken) return;
+    if (accessToken) {
+      if (expires_at! - 60000 > Date.now()) {
+        // check if it is expired
+        return;
+      }
+    }
+
+    // chrome.notifications.create('access-token-missing', notificationOptions).then(console.log).catch(console.error);
     // needs test if it works?
     setIsCodeExpired(false);
     loadAccessToken(setIsCodeExpired).then(data => setCodeData(data));
