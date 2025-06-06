@@ -37,6 +37,10 @@ const getSeriesEpisodeId = async (item: ItemQueueItem): Promise<number | null | 
     append_to_response: 'translations',
   });
 
+  if (!episodeData || !episodeData.id) {
+    return false;
+  }
+
   // @ts-ignore
   const translations = episodeData.translations as EpisodeTranslationsResponse;
   if (
@@ -44,11 +48,11 @@ const getSeriesEpisodeId = async (item: ItemQueueItem): Promise<number | null | 
       return tItem.data?.name === item.subTitle;
     })
   ) {
-    console.error('Translation not found - incorrect series or episode');
-    return false;
+    console.error('Translation not found - incorrect series or episode - manual approval required');
+    return -episodeData.id;
   }
 
-  return episodeData.id!;
+  return episodeData.id;
 };
 
 export const getTmdbId = async (item: ItemQueueItem): Promise<number | false | null> => {

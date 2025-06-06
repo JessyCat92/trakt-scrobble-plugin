@@ -1,7 +1,7 @@
 import '@src/Popup.css';
 import { TraktApi, TraktGetDeviceCodeResponse, useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import { exampleThemeStorage, itemQueueStorage, traktDataStorage } from '@extension/storage';
-import { cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
+import { Button, cn, ErrorDisplay, LoadingSpinner } from '@extension/ui';
 import { useEffect, useState } from 'react';
 
 const notificationOptions = {
@@ -24,6 +24,17 @@ async function loadAccessToken(setIsCodeExpired: Function) {
   }, 1000);
 
   return deviceCodes as TraktGetDeviceCodeResponse;
+}
+
+async function manualSync(id: string) {
+  const traktApi = new TraktApi(process.env['CEB_TRAKT_CLIENT_ID']!, process.env['CEB_TRAKT_CLIENT_SECRET']!);
+  if (await traktApi.isAuthenticated()) {
+    const item = await itemQueueStorage.getItembyUniqueId(id);
+    item!.tmdbId! = -item!.tmdbId!;
+    await traktApi.syncItemToHistory(item!);
+  } else {
+    chrome.notifications.create('access-token-missing', notificationOptions).then(console.log).catch(console.error);
+  }
 }
 
 const Popup = () => {
@@ -81,14 +92,47 @@ const Popup = () => {
           <h4>Queued Items:</h4>
           <ul style={{ listStyle: 'inside' }}>
             {queueItems.map(item => (
-              <li key={item.videoUrl}>
-                <a href={item.videoUrl} target="_blank" rel="noreferrer">
-                  {item.title}
-                </a>
-                {item.subTitle ? <> - {item.subTitle} </> : <></>} -{' '}
-                {item.progress > 0 ? Math.round(item.progress * 100) : 0} % (TMDB: {item.tmdbId} - UUID: {item.unqiueId}
-                )
-              </li>
+              <>
+                {!item.tmdbId || item.tmdbId > -2 ? (
+                  <li key={item.videoUrl}>
+                    <a href={item.videoUrl} target="_blank" rel="noreferrer">
+                      {item.title}
+                    </a>
+                    {item.subTitle ? <> - {item.subTitle} </> : <></>} -{' '}
+                    {item.progress > 0 ? Math.round(item.progress * 100) : 0} % (TMDB: {item.tmdbId} - UUID:{' '}
+                    {item.unqiueId})
+                  </li>
+                ) : (
+                  <></>
+                )}
+              </>
+            ))}
+          </ul>
+        </div>
+
+        <div style={{ marginBottom: '1rem', border: '1px solid', padding: '1rem' }}>
+          <h4>Manual Sync required:</h4>
+          <ul style={{ listStyle: 'inside' }}>
+            {queueItems.map(item => (
+              <>
+                {item.tmdbId && item.tmdbId < -1 ? (
+                  <li key={item.videoUrl}>
+                    <a href={item.videoUrl} target="_blank" rel="noreferrer">
+                      {item.title}
+                    </a>
+                    {item.subTitle ? <> - {item.subTitle} </> : <></>} -{' '}
+                    {item.progress > 0 ? Math.round(item.progress * 100) : 0} % (TMDB: {item.tmdbId} - UUID:{' '}
+                    {item.unqiueId}){' '}
+                    <Button
+                      style={{ fontSize: '0.75em', margin: 0, padding: '2px' }}
+                      onClick={() => manualSync(item.unqiueId)}>
+                      Sync
+                    </Button>
+                  </li>
+                ) : (
+                  <></>
+                )}
+              </>
             ))}
           </ul>
         </div>

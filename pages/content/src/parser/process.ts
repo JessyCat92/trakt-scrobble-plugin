@@ -82,7 +82,7 @@ export interface RawItemData {
 
 export const processItem = async (rawItem: RawItemData) => {
   // @todo: get if not exist tmdbId and counter check server tmdb Id  -> maybe in backgrond process together with calculating Watch Time
-  // console.log(rawItem);
+  console.log('cpatured New Item:', rawItem);
 
   const item = await itemQueueStorage.getItembyUniqueId(rawItem.uniqueId);
   const isSynced = await itemQueueStorage.isItemSyncedByUniqueId(rawItem.uniqueId);
