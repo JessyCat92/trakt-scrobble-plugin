@@ -78,7 +78,7 @@ export class Wowtv implements IService {
   }
 
   isService(url: string): boolean {
-    const regex = /https:\/\/www\.wowtv\.de\/(?:[^/]+\/)+[^/]+\/[^/]+/;
+    const regex = /https:\/\/www\.wowtv\.de\/.*/;
 
     return regex.test(url);
   }

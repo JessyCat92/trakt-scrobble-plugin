@@ -12,6 +12,7 @@ const services: Implements<IService, any>[] = [Wowtv];
 export const getService = async () => {
   for (const serviceClass of services) {
     const service = new serviceClass();
+    // console.log('href', window.location.href);
     if (service.isService(window.location.href)) {
       return service;
     }
@@ -25,47 +26,58 @@ export const processPage = async () => {
 
   // Select the node that will be observed for mutations
   // const targetNode = document.getElementById('mainContainer');
-  const targetNode = document.body;
+  const targetNode = document.body; // do we need this from per service to avoid advertising video shit?
 
-  // Options for the observer (which mutations to observe)
-  const config = { attributes: false, childList: true, subtree: true };
+  const video = targetNode.querySelector('video');
 
-  const callback = (mutationList: MutationRecord[]) => {
-    let videoComponent: Node | undefined;
+  if (video) {
+    video.addEventListener('timeupdate', () => processVideoProgress(video));
+  } else {
+    // Options for the observer (which mutations to observe)
+    const config = { attributes: false, childList: true, subtree: true };
 
-    // page reloads and video get added via
-    for (const mutation of mutationList) {
-      videoComponent = Array.from(mutation.addedNodes).find((node: Node) => node.nodeName.toLowerCase() === 'video');
-    }
+    const callback = (mutationList: MutationRecord[]) => {
+      let videoComponent: Node | undefined;
 
-    if (!videoComponent) return;
+      // page reloads and video get added via
+      for (const mutation of mutationList) {
+        videoComponent = Array.from(mutation.addedNodes).find((node: Node) => node.nodeName.toLowerCase() === 'video');
+      }
 
-    // video Component is loaded -> we can now start the scrobbling
-    // console.log(videoComponent);
-    const video = videoComponent as HTMLMediaElement;
-    video.addEventListener('timeupdate', async () => {
-      // video time should be longer then 3 seconds - otherwise it is still loading
-      if (video.currentTime <= 15) return;
-      await processItem({
-        videoUrl: (await service.getVideoUrl())!,
-        videoDuration: video.duration,
-        videoCurrentTime: video.currentTime,
-        videoType: service.getVideoType(),
-        title: service.getCurrentVideoTitle(),
-        subtitle: service.getCurrentSubTitle(),
-        season: service.getCurrentSeasonNr(),
-        episode: service.getCurrentEpisodeNr(),
-        uniqueId: await service.getUniqueIdentifier(),
-        service,
-      });
-    });
-  };
+      if (!videoComponent) return;
 
-  // Create an observer instance linked to the callback function
-  const observer = new MutationObserver(callback);
+      // video Component is loaded -> we can now start the scrobbling
+      // console.log(videoComponent);
+      const video = videoComponent as HTMLMediaElement;
+      console.log(video);
+      video.addEventListener('timeupdate', () => processVideoProgress(video));
+    };
 
-  // Start observing the target node for configured mutations
-  observer.observe(targetNode, config);
+    // Create an observer instance linked to the callback function
+    const observer = new MutationObserver(callback);
+
+    // Start observing the target node for configured mutations
+    observer.observe(targetNode, config);
+  }
+};
+
+const processVideoProgress = async (video: HTMLMediaElement) => {
+  const service = await getService();
+  // video time should be longer then 3 seconds - otherwise it is still loading
+  if (video.currentTime <= 15) return;
+
+  await processItem({
+    videoUrl: (await service.getVideoUrl())!,
+    videoDuration: video.duration,
+    videoCurrentTime: video.currentTime,
+    videoType: service.getVideoType(),
+    title: service.getCurrentVideoTitle(),
+    subtitle: service.getCurrentSubTitle(),
+    season: service.getCurrentSeasonNr(),
+    episode: service.getCurrentEpisodeNr(),
+    uniqueId: await service.getUniqueIdentifier(),
+    service,
+  });
 };
 
 export interface RawItemData {
