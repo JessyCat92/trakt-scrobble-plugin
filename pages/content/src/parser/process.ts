@@ -1,16 +1,17 @@
-import { itemQueueStorage } from '@extension/storage';
-import Wowtv from '@src/parser/services/wowtv';
-import type { VideoType } from '@extension/storage';
+import { itemQueueStorage, VideoType } from '@extension/storage';
+import { Wowtv } from '@src/parser/services/wowtv';
 import type { IService } from '@src/parser/utils/IService';
 
-const services: IService[] = [Wowtv];
+type Implements<T, U extends T> = U;
+const services: Implements<IService, any>[] = [Wowtv];
 
 /**
  * Get the service for the current page
  * If Service is not found, return null
  */
 export const getService = async () => {
-  for (const service of services) {
+  for (const serviceClass of services) {
+    const service = new serviceClass();
     if (service.isService(window.location.href)) {
       return service;
     }
@@ -86,7 +87,10 @@ export const processItem = async (rawItem: RawItemData) => {
 
   const item = await itemQueueStorage.getItembyUniqueId(rawItem.uniqueId);
   const isSynced = await itemQueueStorage.isItemSyncedByUniqueId(rawItem.uniqueId);
-  if (isSynced) return;
+  if (isSynced) {
+    console.debug('Item is already synced, skipping it.');
+    return;
+  }
 
   if (!item) {
     // console.log('storage:', await itemQueueStorage.get());
@@ -110,9 +114,15 @@ export const processItem = async (rawItem: RawItemData) => {
     if (!item.subTitle) item.subTitle = rawItem.subtitle;
     if (!item.season) item.season = rawItem.season;
     if (!item.episode) item.episode = rawItem.episode;
-    if (item.videoType !== rawItem.videoType) item.videoType = rawItem.videoType;
+    if (!item.subTitle && !item.season && !item.episode && !rawItem.episode && !rawItem.season && !rawItem.subtitle) {
+      item.videoType = VideoType.movie;
+    } else {
+      item.videoType = VideoType.series;
+    }
 
     item.positions.push(rawItem.videoCurrentTime);
+
+    console.log('updateItem');
     await itemQueueStorage.updateItem(item);
   }
 };

@@ -17,9 +17,17 @@ const getSeriesEpisodeId = async (item: ItemQueueItem): Promise<number | null | 
 
   for (const series of seriesData.results!) {
     // check if first item is exact match
-    // @todo: do we need to check translations? e.g. different if title is german - is result then also german?
     if (series.name === item.title) {
       // counter-check for item that is an exact match
+      seriesId = series.id!;
+      break;
+    }
+
+    const translations = await tmdb.tvTranslations({
+      id: series.id!,
+    });
+
+    if (translations.translations?.some(tItem => tItem.data?.name === item.title)) {
       seriesId = series.id!;
       break;
     }
@@ -66,10 +74,36 @@ export const getTmdbId = async (item: ItemQueueItem): Promise<number | false | n
   }
 
   if (item.videoType === VideoType.movie) {
-    console.log(await tmdb.searchMovie({ query: item.title }));
+    return await getMovieItemId(item);
   } else if (item.videoType === VideoType.series) {
     return await getSeriesEpisodeId(item);
   }
 
   return null;
+};
+
+const getMovieItemId = async (item: ItemQueueItem): Promise<number | false | null> => {
+  const tmdb = new MovieDb(TMDB_API_KEY!);
+  const movieData = await tmdb.searchMovie({ query: item.title });
+
+  let movieId = -1;
+
+  for (const movie of movieData.results!) {
+    if (movie.title === item.title) {
+      // counter-check for item that is an exact match
+      movieId = movie.id!;
+      break;
+    }
+
+    const translations = await tmdb.movieTranslations({
+      id: movie.id!,
+    });
+
+    if (translations.translations?.some(tItem => (tItem.data! as { title: string }).title === item.title)) {
+      movieId = movie.id!;
+      break;
+    }
+  }
+
+  return movieId;
 };
