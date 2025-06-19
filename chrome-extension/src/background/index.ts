@@ -21,7 +21,7 @@ setInterval(async () => {
     // console.log(findLatestWatchedPosition(item.positions));
     item.progress = findLatestWatchedPosition(item.positions) / item.videoDuration;
 
-    if (!item.tmdbId) {
+    if (!item.tmdbId || item.tmdbId === -1) {
       if (item.tmdbId === false) {
         // @todo: maybe remove from queue
         // @todo: store possible id negative if subtitle does not be equal -> requires manual approval

@@ -124,6 +124,7 @@ export const processItem = async (rawItem: RawItemData) => {
     });
   } else {
     if (!item.subTitle) item.subTitle = rawItem.subtitle;
+    if (!item.title || item.title.length < 1) item.title = rawItem.title!;
     if (!item.season) item.season = rawItem.season;
     if (!item.episode) item.episode = rawItem.episode;
     if (!item.subTitle && !item.season && !item.episode && !rawItem.episode && !rawItem.season && !rawItem.subtitle) {

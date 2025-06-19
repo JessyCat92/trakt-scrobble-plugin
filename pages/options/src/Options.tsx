@@ -9,6 +9,7 @@ import {
 } from '@extension/shared/index.mjs';
 import { exampleThemeStorage, itemQueueStorage, traktDataStorage } from '@extension/storage';
 import { Button, cn, ErrorDisplay, LoadingSpinner, ToggleButton } from '@extension/ui';
+import SetIdForm from '@src/setIdForm.';
 import { useEffect, useState } from 'react';
 
 const notificationOptions = {
@@ -130,7 +131,7 @@ const Options = () => {
         <ul style={{ listStyle: 'inside' }}>
           {queueItems.map(item => (
             <>
-              {item.tmdbId && item.tmdbId < -1 ? (
+              {item.tmdbId && (item.tmdbId < -1 || (item.tmdbId === -1 && item.progress > 0.9)) ? (
                 <li key={item.videoUrl}>
                   <a href={item.videoUrl} target="_blank" rel="noreferrer">
                     {item.title}
@@ -138,9 +139,19 @@ const Options = () => {
                   {item.subTitle ? <> - {item.subTitle} </> : <></>} -{' '}
                   {item.progress > 0 ? Math.round(item.progress * 100) : 0} % (TMDB: {item.tmdbId} - UUID:{' '}
                   {item.unqiueId}){' '}
-                  <Button style={{ fontSize: '0.5em' }} onClick={() => manualSync(item.unqiueId)}>
-                    Sync
-                  </Button>
+                  {item.tmdbId < -1 ? (
+                    <>
+                      <Button
+                        style={{ fontSize: '0.75em', margin: 0, padding: '2px' }}
+                        onClick={() => manualSync(item.unqiueId)}>
+                        Sync
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <SetIdForm itemId={item.unqiueId} />
+                    </>
+                  )}
                 </li>
               ) : (
                 <></>
