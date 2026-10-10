@@ -2,6 +2,9 @@ name: Formating validation
 
 on: [ pull_request_target ]
 
+permissions:
+  contents: read
+
 jobs:
   prettier:
     name: Prettier Check
