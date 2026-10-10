@@ -1,3 +1,4 @@
+import { async } from 'fast-glob';
 import { createStorage, StorageEnum } from '../base/index.js';
 import type { BaseStorageType, VideoType } from '../base/index.js';
 

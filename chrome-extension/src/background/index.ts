@@ -21,9 +21,10 @@ setInterval(async () => {
     // console.log(findLatestWatchedPosition(item.positions));
     item.progress = findLatestWatchedPosition(item.positions) / item.videoDuration;
 
-    if (!item.tmdbId) {
+    if (!item.tmdbId || item.tmdbId === -1) {
       if (item.tmdbId === false) {
-        // @todo: remove from queue
+        // @todo: maybe remove from queue
+        // @todo: store possible id negative if subtitle does not be equal -> requires manual approval
         continue;
       }
 
@@ -34,6 +35,9 @@ setInterval(async () => {
     // Field positions is storing position every some milliseconds if time is close together it is because of playing not skipping - I want to have a sum of all time between positions where it because of playing
 
     if (item.progress > 0.9) {
+      if (item.tmdbId && item.tmdbId < 0) {
+        continue;
+      }
       if (await traktApi.isAuthenticated()) {
         await traktApi.syncItemToHistory(item);
       } else {

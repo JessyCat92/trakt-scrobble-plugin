@@ -1,7 +1,7 @@
 import { VideoType } from '@extension/storage';
 import type { IService } from '@src/parser/utils/IService';
 
-class Wowtv implements IService {
+export class Wowtv implements IService {
   serviceName: string = 'WOW';
   tmdbServiceId: number = 30;
   private episodeNr: number | null = null;
@@ -10,7 +10,9 @@ class Wowtv implements IService {
   private videoType: VideoType | null = null;
 
   parseMetaData() {
-    const metaData = document.querySelector('.playback-metadata__container-info')?.textContent;
+    const metaData = document.querySelector(
+      '.playback-metadata__container-info .playback-metadata__container-episode-metadata-info',
+    )?.textContent;
 
     if (!metaData) {
       // movies do not have that type of metadata
@@ -76,11 +78,8 @@ class Wowtv implements IService {
   }
 
   isService(url: string): boolean {
-    const regex = /https:\/\/www\.wowtv\.de\/(?:[^/]+\/)+[^/]+\/[^/]+/;
+    const regex = /https:\/\/www\.wowtv\.de\/.*/;
 
     return regex.test(url);
   }
 }
-
-export const WowtvInstance = new Wowtv();
-export default WowtvInstance;

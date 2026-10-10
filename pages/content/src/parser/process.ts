@@ -1,16 +1,18 @@
-import { itemQueueStorage } from '@extension/storage';
-import Wowtv from '@src/parser/services/wowtv';
-import type { VideoType } from '@extension/storage';
+import { itemQueueStorage, VideoType } from '@extension/storage';
+import { Wowtv } from '@src/parser/services/wowtv';
 import type { IService } from '@src/parser/utils/IService';
 
-const services: IService[] = [Wowtv];
+type Implements<T, U extends T> = U;
+const services: Implements<IService, any>[] = [Wowtv];
 
 /**
  * Get the service for the current page
  * If Service is not found, return null
  */
 export const getService = async () => {
-  for (const service of services) {
+  for (const serviceClass of services) {
+    const service = new serviceClass();
+    // console.log('href', window.location.href);
     if (service.isService(window.location.href)) {
       return service;
     }
@@ -24,47 +26,58 @@ export const processPage = async () => {
 
   // Select the node that will be observed for mutations
   // const targetNode = document.getElementById('mainContainer');
-  const targetNode = document.body;
+  const targetNode = document.body; // do we need this from per service to avoid advertising video shit?
 
-  // Options for the observer (which mutations to observe)
-  const config = { attributes: false, childList: true, subtree: true };
+  const video = targetNode.querySelector('video');
 
-  const callback = (mutationList: MutationRecord[]) => {
-    let videoComponent: Node | undefined;
+  if (video) {
+    video.addEventListener('timeupdate', () => processVideoProgress(video));
+  } else {
+    // Options for the observer (which mutations to observe)
+    const config = { attributes: false, childList: true, subtree: true };
 
-    // page reloads and video get added via
-    for (const mutation of mutationList) {
-      videoComponent = Array.from(mutation.addedNodes).find((node: Node) => node.nodeName.toLowerCase() === 'video');
-    }
+    const callback = (mutationList: MutationRecord[]) => {
+      let videoComponent: Node | undefined;
 
-    if (!videoComponent) return;
+      // page reloads and video get added via
+      for (const mutation of mutationList) {
+        videoComponent = Array.from(mutation.addedNodes).find((node: Node) => node.nodeName.toLowerCase() === 'video');
+      }
 
-    // video Component is loaded -> we can now start the scrobbling
-    // console.log(videoComponent);
-    const video = videoComponent as HTMLMediaElement;
-    video.addEventListener('timeupdate', async () => {
-      // video time should be longer then 3 seconds - otherwise it is still loading
-      if (video.currentTime <= 15) return;
-      await processItem({
-        videoUrl: (await service.getVideoUrl())!,
-        videoDuration: video.duration,
-        videoCurrentTime: video.currentTime,
-        videoType: service.getVideoType(),
-        title: service.getCurrentVideoTitle(),
-        subtitle: service.getCurrentSubTitle(),
-        season: service.getCurrentSeasonNr(),
-        episode: service.getCurrentEpisodeNr(),
-        uniqueId: await service.getUniqueIdentifier(),
-        service,
-      });
-    });
-  };
+      if (!videoComponent) return;
 
-  // Create an observer instance linked to the callback function
-  const observer = new MutationObserver(callback);
+      // video Component is loaded -> we can now start the scrobbling
+      // console.log(videoComponent);
+      const video = videoComponent as HTMLMediaElement;
+      console.log(video);
+      video.addEventListener('timeupdate', () => processVideoProgress(video));
+    };
 
-  // Start observing the target node for configured mutations
-  observer.observe(targetNode, config);
+    // Create an observer instance linked to the callback function
+    const observer = new MutationObserver(callback);
+
+    // Start observing the target node for configured mutations
+    observer.observe(targetNode, config);
+  }
+};
+
+const processVideoProgress = async (video: HTMLMediaElement) => {
+  const service = await getService();
+  // video time should be longer then 3 seconds - otherwise it is still loading
+  if (video.currentTime <= 15) return;
+
+  await processItem({
+    videoUrl: (await service.getVideoUrl())!,
+    videoDuration: video.duration,
+    videoCurrentTime: video.currentTime,
+    videoType: service.getVideoType(),
+    title: service.getCurrentVideoTitle(),
+    subtitle: service.getCurrentSubTitle(),
+    season: service.getCurrentSeasonNr(),
+    episode: service.getCurrentEpisodeNr(),
+    uniqueId: await service.getUniqueIdentifier(),
+    service,
+  });
 };
 
 export interface RawItemData {
@@ -82,11 +95,14 @@ export interface RawItemData {
 
 export const processItem = async (rawItem: RawItemData) => {
   // @todo: get if not exist tmdbId and counter check server tmdb Id  -> maybe in backgrond process together with calculating Watch Time
-  // console.log(rawItem);
+  console.log('cpatured New Item:', rawItem);
 
   const item = await itemQueueStorage.getItembyUniqueId(rawItem.uniqueId);
   const isSynced = await itemQueueStorage.isItemSyncedByUniqueId(rawItem.uniqueId);
-  if (isSynced) return;
+  if (isSynced) {
+    console.debug('Item is already synced, skipping it.');
+    return;
+  }
 
   if (!item) {
     // console.log('storage:', await itemQueueStorage.get());
@@ -108,11 +124,18 @@ export const processItem = async (rawItem: RawItemData) => {
     });
   } else {
     if (!item.subTitle) item.subTitle = rawItem.subtitle;
+    if (!item.title || item.title.length < 1) item.title = rawItem.title!;
     if (!item.season) item.season = rawItem.season;
     if (!item.episode) item.episode = rawItem.episode;
-    if (item.videoType !== rawItem.videoType) item.videoType = rawItem.videoType;
+    if (!item.subTitle && !item.season && !item.episode && !rawItem.episode && !rawItem.season && !rawItem.subtitle) {
+      item.videoType = VideoType.movie;
+    } else {
+      item.videoType = VideoType.series;
+    }
 
     item.positions.push(rawItem.videoCurrentTime);
+
+    console.log('updateItem');
     await itemQueueStorage.updateItem(item);
   }
 };
